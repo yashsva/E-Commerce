@@ -10,9 +10,14 @@ const flash=require('connect-flash');
 const errorController = require('./controllers/error');
 const User = require('./models/user');
 
+//To get API keys from .env files (Using process.env.<variable_name> )
+require('dotenv').config();
+
+
 const app = express();
 
-const MONGODB_URI = 'mongodb+srv://Yash:sunil@mongodb@yash-cluster.qzqmk.mongodb.net/E-commerceProject?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI;
+
 
 
 const store = new MongoDBStore({

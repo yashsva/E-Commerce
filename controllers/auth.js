@@ -5,9 +5,13 @@ const sendgridTransport=require('nodemailer-sendgrid-transport');
 const User = require('../models/user');
 const { error } = require('console');
 
+
+//To get API keys from .env files (Using process.env.<variable_name> )
+require('dotenv').config();
+
 const transporter=nodemailer.createTransport(sendgridTransport({
     auth : {
-        api_key:'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'
+        api_key: process.env.SENDGRID_API_KEY
     }
 }));
 
@@ -52,6 +56,7 @@ exports.postLogin = (req, res, next) => {
                             if (err) {
                                 console.log(err);
                             }
+                            
                             res.redirect('/');
 
                         });
@@ -127,9 +132,9 @@ exports.postSignup = (req, res, next) => {
                     res.redirect('/login');
                     return transporter.sendMail({
                         to:email,
-                        from:'namansisodiya2013@gmail.com',
+                        from:process.env.SENDING_EMAIL_FROM,    //getting email from .env file
                         subject:"SignUp Succeded !",
-                        html:'<h1>You Successfully signed up !</h1>'
+                        html:'<h1>Welcome !</h1><h2>You Successfully signed up at our platform !</h2>'
                     }).catch(err => console.log(err));
                 })
                 .catch(err => console.log(err));
