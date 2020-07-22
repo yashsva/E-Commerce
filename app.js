@@ -6,12 +6,15 @@ const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const csrf = require('csurf');
 const flash = require('connect-flash');
+const multer = require('multer');
+
 
 const errorController = require('./controllers/error');
 const User = require('./models/user');
 
 //To get API keys from .env files (Using process.env.<variable_name> )
 require('dotenv').config();
+
 
 
 const app = express();
@@ -28,17 +31,43 @@ const store = new MongoDBStore({
 
 const csrfProtection = csrf();
 
+const imageFileStorage = multer.diskStorage({
+  destination: (req, file, callback) => {
+    callback(null, 'images');
+  },
+  filename: (req, file, callback) => {
+    callback(null, new Date().getTime()+'-'+file.originalname);   //new Date().toISOString() + '-' +
+  }
+});
+//For multer-> fliter file types
+const fileFilter = (req, file, callback) => {
+  if (file.mimetype === 'image/png' || file.mimetype === 'image/jpg' || file.mimetype === 'image/jpeg') {
+
+    callback(null, true);
+  }
+  else {
+    callback(null, false);
+  }
+}
+
+
+
 app.set('view engine', 'ejs');
 app.set('views', 'views');
+
+
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const authRoutes = require('./routes/auth');
 
 app.use(bodyParser.urlencoded({ extended: false }));
+// app.use(multer({ storage: imageFileStorage}).single('image'));
+app.use(multer({ storage: imageFileStorage,fileFilter:fileFilter }).single('image'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images',express.static(path.join(__dirname, 'images')));
 
-app.use(
+app.use( 
   session(
     {
       secret: 'my secret',
@@ -79,8 +108,6 @@ app.use((req, res, next) => {
 
 
 
-
-
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
@@ -91,11 +118,13 @@ app.use(errorController.get404);
 
 app.use((error, req, res, next) => {
   console.log('500 Error');
+  // console.log(req);
+  // console.log('Error', error);
+  
   res.status(500).render('500',
     {
-      pageTitle: 'Page Not Found',
+      pageTitle: 'Error',
       path: '/500',
-      isAuthenticated: req.isLoggedIn
     });
 })
 
