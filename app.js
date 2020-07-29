@@ -37,9 +37,14 @@ const store = new MongoDBStore({
 
 const csrfProtection = csrf();
 
+<<<<<<< HEAD
 //for issuing ssl certificates
 // const privateKey=fs.readFileSync('server.key');
 // const certificate=fs.readFileSync('server.cert');
+=======
+const privateKey=fs.readFileSync('server.key');
+const certificate=fs.readFileSync('server.cert');
+>>>>>>> 239203a384aeb8b93db6e67e90bd4f2d5e340cca
 
 const imageFileStorage = multer.diskStorage({
   destination: (req, file, callback) => {
