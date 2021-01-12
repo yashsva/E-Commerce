@@ -1,9 +1,14 @@
-const { validationResult } = require('express-validator/check');
+const {
+  validationResult
+} = require('express-validator/check');
 const Product = require('../models/product');
-const { error } = require('console');
+const {
+  error
+} = require('console');
 
 const fileHelper = require('../util/file');
-const product = require('../models/product');
+const cloudinary_util = require('../util/cloudinary');
+
 
 
 
@@ -45,16 +50,15 @@ exports.postAddProduct = (req, res, next) => {
   }
 
 
-  const imageUrl = image.path;
-
-  // console.log(imageUrl);
-
   // console.log(req);
 
 
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
+    if (image) {
+      fileHelper.deleteFile(image.path);
+    }
     return res.status(422).render('admin/edit-product', {
       pageTitle: 'Add Product',
       path: '/admin/edit-product',
@@ -62,7 +66,6 @@ exports.postAddProduct = (req, res, next) => {
       hasError: true,
       product: {
         title: title,
-        imageUrl: imageUrl,
         price: price,
         description: description,
       },
@@ -71,20 +74,38 @@ exports.postAddProduct = (req, res, next) => {
     });
   }
 
-  const product = new Product({
-    title: title,
-    price: price,
-    description: description,
-    imageUrl: imageUrl,
-    userId: req.user
-  });
-  product
-    .save()
-    .then(result => {
-      // console.log(result);
-      console.log('Created Product');
-      res.redirect('/admin/products');
-    })
+  var imageUrl = image.path;
+  // console.log("path - ", image.path);
+  // console.log(imageUrl);
+
+  cloudinary_util.uploader.upload(image.path, {
+    folder: "e-comm-shop/product_images",
+    format: "jpg"
+  }, (err, result) => {
+
+    // console.log(result);
+    var {
+      public_id
+    } = result;
+    imageUrl = public_id;
+
+    fileHelper.deleteFile(image.path);
+  }).then(() => {
+
+    const product = new Product({
+      title: title,
+      price: price,
+      description: description,
+      imageUrl: imageUrl,
+      userId: req.user
+    });
+
+    return product.save();
+  }).then(result => {
+    // console.log(result);
+    console.log('Created Product');
+    res.redirect('/admin/products');
+  })
     .catch(err => {
       // console.log(err);
       const error = new Error(err);
@@ -148,34 +169,62 @@ exports.postEditProduct = (req, res, next) => {
     });
   }
 
-  Product.findById(prodId)
+  var updatedImageUrl, oldImageUrl;
+  var updatedProduct;
+
+
+  return Product.findById(prodId)
     .then(product => {
 
-      console.log(req.user._id);
+      // console.log(req.user._id);
       if (product.userId.toString() !== req.user._id.toString()) {
-        return res.redirect('/');
+        res.redirect('/');
+        throw new Error("Unauthorized");
       }
 
       product.title = updatedTitle;
       product.price = updatedPrice;
       product.description = updatedDesc;
-      if (updatedImage) {
-        fileHelper.deleteFile(product.imageUrl);
-        product.imageUrl = updatedImage.path;
-      }
-      return product.save()
-        .then(result => {
-          console.log('UPDATED PRODUCT!');
-          res.redirect('/admin/products');
-        });
-    })
 
+      updatedProduct = product;
+
+    }).then(() => {
+      if (updatedImage) {
+        oldImageUrl = updatedProduct.imageUrl;
+
+        return cloudinary_util.uploader.upload(updatedImage.path, {
+          folder: "e-comm-shop/product_images",
+          format: "jpg"
+        }, (err, result) => {
+
+          // console.log(public_id);
+          var { public_id } = result;
+          updatedProduct.imageUrl = public_id;
+
+
+        }).then(() => {
+          fileHelper.deleteFile(updatedImage.path);
+          return cloudinary_util.uploader.destroy(oldImageUrl, { invalidate: true }, (err, result) => {
+            // console.log(result);
+          })
+        })
+
+      }
+    }).then(() => {
+
+      return updatedProduct.save()
+    })
+    .then(result => {
+      console.log('UPDATED PRODUCT!');
+      return res.redirect('/admin/products');
+    })
     .catch(err => {
-      // console.log(err);
+      console.log(err);
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
     });
+
 };
 
 exports.getProducts = (req, res, next) => {
@@ -186,11 +235,15 @@ exports.getProducts = (req, res, next) => {
 
   let totalItems;
 
-  Product.find({ userId: req.user._id }).countDocuments()
+  Product.find({
+    userId: req.user._id
+  }).countDocuments()
     .then((numberOfProducts) => {
 
       totalItems = numberOfProducts;
-      return Product.find({ userId: req.user._id }).skip((page - 1) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE);
+      return Product.find({
+        userId: req.user._id
+      }).skip((page - 1) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE);
 
     }).then(products => {
 
@@ -227,14 +280,21 @@ exports.deleteProduct = (req, res, next) => {
         return next(new Error('Product not found'));
       }
       fileHelper.deleteFile(product.imageUrl);
-      return Product.deleteOne({ _id: prodId, userId: req.user._id });
+      return Product.deleteOne({
+        _id: prodId,
+        userId: req.user._id
+      });
     })
     .then(() => {
       console.log('DESTROYED PRODUCT');
-      res.status(200).json({message:"Success"});
+      res.status(200).json({
+        message: "Success"
+      });
     })
     .catch(err => {
       // console.log(err);
-      res.status(500).json({message:'Deleting Product failed'});
+      res.status(500).json({
+        message: 'Deleting Product failed'
+      });
     });
 };
