@@ -274,16 +274,31 @@ exports.getProducts = (req, res, next) => {
 
 exports.deleteProduct = (req, res, next) => {
   const prodId = req.params.productId;
+  var imageUrl = null;
   Product.findById(prodId)
     .then((product) => {
       if (!product) {
         return next(new Error('Product not found'));
       }
-      fileHelper.deleteFile(product.imageUrl);
+
+      if (product.userId.toString() !== req.user._id.toString()) {
+        res.redirect('/');
+        throw new Error("Unauthorized");
+      }
+
+      imageUrl = product.imageUrl;
+
       return Product.deleteOne({
         _id: prodId,
         userId: req.user._id
       });
+    }).then(() => {
+
+      if (imageUrl) {
+        return cloudinary_util.uploader.destroy(imageUrl, { invalidate: true }, (err, result) => {
+          // console.log(result);
+        })
+      }
     })
     .then(() => {
       console.log('DESTROYED PRODUCT');
