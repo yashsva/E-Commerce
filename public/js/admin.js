@@ -19,7 +19,7 @@ const deleteProduct=(btn)=>{
     })
     .then((data)=>{
         console.log(data);
-        window.location.reload();
+        window.location.href="/admin/products";
         // productElement.parentNode.removeChild(productElement);
     })
     .catch(err=>console.log(err));
