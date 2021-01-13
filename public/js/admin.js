@@ -19,7 +19,8 @@ const deleteProduct=(btn)=>{
     })
     .then((data)=>{
         console.log(data);
-        productElement.parentNode.removeChild(productElement);
+        window.location.reload();
+        // productElement.parentNode.removeChild(productElement);
     })
     .catch(err=>console.log(err));
 
