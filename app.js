@@ -139,13 +139,10 @@ app.use(errorController.get404);
 app.use((error, req, res, next) => {
   console.log('500 Error');
   // console.log(req);
-  // console.log('Error', error);
+  console.log('Error - ', error);
 
-  res.status(500).render('500',
-    {
-      pageTitle: 'Error',
-      path: '/500',
-    });
+  errorController.get500(req,res,next);
+  
 })
 
 
