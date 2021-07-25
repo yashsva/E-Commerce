@@ -232,7 +232,7 @@ exports.getInvoice = (req, res, next) => {
       let totalPrice = 0;
       order.products.forEach((prod) => {
         let productTotalPrice = prod.quantity * prod.product.price;
-        pdfDoc.text(prod.product.title + '  --  ' + prod.quantity + ' * ' + '$' + prod.product.price + '  =  $' + productTotalPrice);
+        pdfDoc.text(prod.product.title + '  --  ' + prod.quantity + ' * ' + 'Rs.' + prod.product.price + '  =  Rs.' + productTotalPrice);
 
         totalPrice += productTotalPrice;
 
@@ -240,7 +240,7 @@ exports.getInvoice = (req, res, next) => {
 
       pdfDoc.text('--------------------------------------');
 
-      pdfDoc.fontSize(14).text("Total Price :  $" + totalPrice);
+      pdfDoc.fontSize(14).text("Total Price :  Rs." + totalPrice);
 
 
       pdfDoc.end();
